@@ -79,9 +79,5 @@ classdef Subject < handle
 
         
     end
-
-    methods (Static)
-        sample = createtable();
-    end
 end
 

@@ -3,68 +3,64 @@ classdef EEGDataset
 %   This dataset contains many subjects' eeg data.
     
     properties
-        datasetIdentifier   = '';
-        datasetLoader       = nan;
-        subjects            = [];
-        isLoaded            = [];
+        sessions
+        runs
+        subjectIds
+        subjects
+    end
+
+    properties (Access = private)
+        dataLoader
+        sessionTypes
+        runTypes
     end
 
     properties (Dependent)
         nSubjects
     end
-    
+
     methods
-        function obj = EEGDataset(datasetId, dataLoader, varargin)
+        function obj = EEGDataset(datasetId)
             % DATASET constructor of dataset class
             %   OBJ = EEGDATASET(datasetId) initializes the information of
             %   dataset. The datasetId should be one of filename in loader
             %   directory.
             %
-            %   OBJ = EEGDATASET(datasetId, dataLoader, ...) loads the data
-            %   and subject information from dataLoader. The dataLoader has
-            %   to return list of subjects' identifiers when the function
-            %   called without any parameter. When the loader is called,
-            %   each subject's identifier will passed as parameter. If any
-            %   additional parameter is needed to call the data loader,
-            %   pass all parameters after dataLoader.
-            %
             %   % Example 1:
             %   %   Instanciate the dataset
-            %   dataset = EEGDataset('Won2021');
-            %
-            %   % Example 2:
-            %   %   Instanciate the dataset with specific data loader
-            %   dataset = EEGDataset('CustomDataset', @customloader, ...
-            %                        param1, param2, ...);
-            
-            if nargin < 2
-                filepath = fileparts(mfilename("fullpath"));
-                baseDir = fileparts(filepath);
-                controllerDir = fullfile(baseDir, 'data');
-    
-                currentPath = pwd;
-                cd(controllerDir);
-                basicLoader = @loaddata;
-                cd(currentPath);
+            %   dataset = EEGDataset('Won2022');
 
-                obj.datasetLoader = @(varargin) basicLoader(datasetId, varargin{:});
-            else
-                obj.datasetLoader = dataLoader;
+            obj.dataLoader = loaddataset(datasetId);
+            obj.subjectIds = dataLoader.getSubjectIdentifiers();
+            obj.sessionTypes = dataLoader.getSessionInfo();
+            obj.runTypes = dataLoader.getRunInfo();
+
+            obj.sessions = obj.sessionTypes;
+            obj.runs = obj.runTypes;
+
+            nSubjects = numel(obj.subjectIds);
+            obj.subjects = Subject.empty(1, nSubjects);
+            for i = 1:nSubjects
+                obj.subjects(i) = Subject(obj.subjectIds(i), obj.dataLoader);
             end
-
-            obj.subjects = obj.datasetLoader();
-            obj.datasetIdentifier = datasetId;
-
-            obj.subjects = Subject.empty(1, numel(obj.subjects));
-            for iSubject = 1:numel(obj.subjects)
-                subjectId = obj.subjects(iSubject);
-                obj.subjects(iSubject) = obj.datasetLoader(subjectId, varargin{:});
-            end
-            obj.isLoaded = false(size(obj.subjects));
         end
 
         function nSubjects = get.nSubjects(obj)
-            nSubjects = numel(obj.subjects);
+            nSubjects = numel(obj.subjectIds);
+        end
+
+        function obj = setSessions(obj, sess)
+            obj.sessions = validatestring(sess, obj.sessionTypes);
+            for i = 1:obj.nSubjects
+                obj.subjects(i).setSessions(obj.sessions);
+            end
+        end
+
+        function obj = setRuns(obj, run)
+            obj.runs = validatestring(run, obj.runTypes);
+            for i = 1:obj.nSubjects
+                obj.subjects(i).setRuns(obj.runs);
+            end
         end
 
         function subject = subsref(obj, subscript)
@@ -74,32 +70,21 @@ classdef EEGDataset
             %   returns n subjects' data.
             %
             %   % Example
-            %   obj = EEGDataset(directory, @function);
-            %   subject = obj([1:3]);
+            %   obj = EEGDataset(datasetId);
+            %   subject = obj(1);
         
             isValidate = ~strcmpi(subscript(1).type, '.') && ...
                          numel(subscript) == 1 && ...
-                         numel(subscript(1).subs) == 1;
+                         numel(subscript(1).subs) == 1 && ...
+                         isscalar(subscript(1).subs{1});
         
             if ~isValidate
                 subject = builtin('subsref', obj, subscript);
                 return;
             end
-        
-            if strcmpi(subscript(1).subs{1}, ':')
-                subjectIndex = 1:numel(obj.subjects);
-            else
-                subjectIndex = find(ismember(obj.subjects, subscript(1).subs{1}));
-            end
 
-            for iSubject = subjectIndex
-                if ~obj.isLoaded(iSubject)
-                    obj.subjects(iSubject).load();
-                    obj.isLoaded(iSubject) = true;
-                end
-            end
+            subjectIndex = find(ismember(obj.subjectIds, subscript(1).subs{1}));
             subject = obj.subjects(subjectIndex);
         end
     end
 end
-
