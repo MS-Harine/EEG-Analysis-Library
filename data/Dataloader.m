@@ -8,15 +8,10 @@ classdef (Abstract) Dataloader
                      'VariableNames', {'session',  'run', 'signal',  'srate', 'trigIdx', 'trigType', 'chanInfo', 'note'});
     end
     
-    properties (Abstract)
-        sessionTypes
-        runTypes
-    end
-    
     methods (Abstract)
         getSubjectIdentifiers();
-        getSessionInfo();
-        getRunInfo();
+        getSessionTypes();
+        getRunTypes();
 
         getMetadata(subjectId);
         load(subjectId, varargin);

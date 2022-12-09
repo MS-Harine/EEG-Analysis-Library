@@ -32,8 +32,8 @@ classdef EEGDataset
 
             obj.dataLoader = loaddataset(datasetId);
             obj.subjectIds = dataLoader.getSubjectIdentifiers();
-            obj.sessionTypes = dataLoader.getSessionInfo();
-            obj.runTypes = dataLoader.getRunInfo();
+            obj.sessionTypes = dataLoader.getSessionTypes();
+            obj.runTypes = dataLoader.getRunTypes();
 
             obj.sessions = obj.sessionTypes;
             obj.runs = obj.runTypes;

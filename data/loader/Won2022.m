@@ -1,3 +1,36 @@
+classdef Won2022 < Dataloader
+
+    properties
+        subjectIds      = [1 55];
+        sessionTypes    = {'rest', 'RSVP',   'train', 'test'};
+        runTypes        = { [1 2],      1, [1 2 3 4],  [1 2]};
+    end
+    
+    methods
+        function subjectIds = getSubjectIdentifiers(obj)
+            subjectIds = obj.subjectIds;
+        end
+
+        function sessionTypes = getSessionTypes(obj)
+            sessionTypes = obj.sessionTypes;
+        end
+
+        function runTypes = getRunTypes(obj)
+            runTypes = obj.runTypes;
+        end
+
+        function metadata = getMetadata(subjectId)
+            
+        end
+
+        function data = load(subjectId, varargin)
+            
+        end
+    end
+end
+
+
+
 function subjects = Won2022(subjectId, varargin)
 % WON2022 Data loader for Won 2022 dataset (GIST Speller & RSVP)
 %   SubjectId is numeric value between 1 to 55

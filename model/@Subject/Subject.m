@@ -77,7 +77,6 @@ classdef Subject < handle
             nRuns = numel(obj.runType);
         end
 
-        
     end
 end
 
