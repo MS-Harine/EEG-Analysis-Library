@@ -1,4 +1,4 @@
-function referencedSignal = rereference(signal, varargin)
+function referencedSignal = low_rereference(signal,varargin)
 % REREFERENCE Re-referencing the signal
 %   Y = REREFERENCE(X) changes the reference of signal using specific
 %   method. The input parameter X should be (channel x time) format. It
@@ -56,3 +56,4 @@ end
 referencedSignal = signal - reference;
 
 end
+

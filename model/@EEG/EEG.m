@@ -68,18 +68,20 @@ classdef EEG < handle
             addRequired(p, 'srate', @isscalar);
             addOptional(p, 'triggerIndex', [], @isvector);
             addOptional(p, 'triggerType', [], @isvector);
+            addOptional(p, 'channelInfo', []);
             parse(p, signal, srate, varargin{:});
             
             obj.signal = signal;
             obj.srate = srate;
             obj.triggerIndex = p.Results.triggerIndex;
             obj.triggerType = p.Results.triggerType;
+            obj.channelInfo = p.Results.channelInfo;
 
             if ndims(signal) == 3
                 obj.isEpoched = true;
             else
                 obj.isEpoched = false;
-            end 
+            end
         end
 
         function set.channelInfo(obj, value)

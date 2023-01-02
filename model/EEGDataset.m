@@ -3,16 +3,12 @@ classdef EEGDataset
 %   This dataset contains many subjects' eeg data.
     
     properties
-        sessions
-        runs
-        subjectIds
-        subjects
+        subjectIds  = [];
     end
 
     properties (Access = private)
+        subjects
         dataLoader
-        sessionTypes
-        runTypes
     end
 
     properties (Dependent)
@@ -28,18 +24,13 @@ classdef EEGDataset
             %
             %   % Example 1:
             %   %   Instanciate the dataset
-            %   dataset = EEGDataset('Won2022');
+            %   dataset = EEGDataset('ExampleLoader');
 
-            obj.dataLoader = loaddataset(datasetId);
-            obj.subjectIds = dataLoader.getSubjectIdentifiers();
-            obj.sessionTypes = dataLoader.getSessionTypes();
-            obj.runTypes = dataLoader.getRunTypes();
-
-            obj.sessions = obj.sessionTypes;
-            obj.runs = obj.runTypes;
-
+            obj.dataLoader = getDataLoader(datasetId);
+            obj.subjectIds = obj.dataLoader.getSubjectIdentifiers();
             nSubjects = numel(obj.subjectIds);
-            obj.subjects = Subject.empty(1, nSubjects);
+            
+            obj.subjects = Subject.empty(0, nSubjects);
             for i = 1:nSubjects
                 obj.subjects(i) = Subject(obj.subjectIds(i), obj.dataLoader);
             end
@@ -47,20 +38,6 @@ classdef EEGDataset
 
         function nSubjects = get.nSubjects(obj)
             nSubjects = numel(obj.subjectIds);
-        end
-
-        function obj = setSessions(obj, sess)
-            obj.sessions = validatestring(sess, obj.sessionTypes);
-            for i = 1:obj.nSubjects
-                obj.subjects(i).setSessions(obj.sessions);
-            end
-        end
-
-        function obj = setRuns(obj, run)
-            obj.runs = validatestring(run, obj.runTypes);
-            for i = 1:obj.nSubjects
-                obj.subjects(i).setRuns(obj.runs);
-            end
         end
 
         function subject = subsref(obj, subscript)
@@ -72,19 +49,23 @@ classdef EEGDataset
             %   % Example
             %   obj = EEGDataset(datasetId);
             %   subject = obj(1);
-        
-            isValidate = ~strcmpi(subscript(1).type, '.') && ...
-                         numel(subscript) == 1 && ...
-                         numel(subscript(1).subs) == 1 && ...
-                         isscalar(subscript(1).subs{1});
-        
+
+            isValidate = strcmpi(subscript(1).type, '{}');
             if ~isValidate
                 subject = builtin('subsref', obj, subscript);
                 return;
             end
 
-            subjectIndex = find(ismember(obj.subjectIds, subscript(1).subs{1}));
+            if strcmp(subscript(1).subs{1}, ':')
+                subjectIndex = 1:numel(obj.subjectIds);
+            else
+                subjectIndex = find(ismember(obj.subjectIds, subscript(1).subs{1}));
+            end
             subject = obj.subjects(subjectIndex);
+
+            if numel(subscript) > 1
+                subject = subsref(subject, subscript(2:end));
+            end
         end
     end
 end

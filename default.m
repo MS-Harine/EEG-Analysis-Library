@@ -8,7 +8,7 @@ dataDir = fullfile(baseDir, 'data');
 modelDir = fullfile(baseDir, 'model');
 functionDir = fullfile(baseDir, 'functions');
 
-addpath(dataDir);
+addpath(genpath(dataDir));
 addpath(modelDir);
 addpath(functionDir);
 

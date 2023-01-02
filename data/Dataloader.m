@@ -1,20 +1,33 @@
-classdef (Abstract) Dataloader
+classdef (Abstract) DataLoader
 % DATALOADER Data loader abtract class for various loaders
 %   Abstract dataloader class for implement various loaders.
 
-    properties
-        data = table('Size', [0 8], ...
-                     'VariableTypes', {   'char', 'char', 'double', 'double',  'double',     'char',   'struct', 'char'}, ...
-                     'VariableNames', {'session',  'run', 'signal',  'srate', 'trigIdx', 'trigType', 'chanInfo', 'note'});
-    end
-    
     methods (Abstract)
-        getSubjectIdentifiers();
-        getSessionTypes();
-        getRunTypes();
+        % getSubjectIdentifiers (string or double array)
+        %   Return the list of subject identifiers
+        subjectIds = getSubjectIdentifiers(obj);
 
-        getMetadata(subjectId);
-        load(subjectId, varargin);
+        % getSessionTypes (cell array, {string or double ...})
+        %   Return the list of session types
+        sessionTypes = getSessionTypes(obj);
+
+        % getRunTypes (cell array, {double array, double array ...})
+        %   Return the list of run types for specific session
+        runTypes = getRunTypes(obj, session);
+
+        % load
+        %   Load specific subject's data and event.
+        %   Data is struct type contains 'session', 'run', and 'eeg'
+        %   fields.
+        %   In 'eeg' fields, EEG class is needed.
+        %
+        %   Ex)
+        %   'session'   |   'run'   |   'eeg'
+        %   ------------|-----------|-----------
+        %   'train'     |   1       |   'EEG'
+        %   'train'     |   2       |   'EEG'
+        %   'test'      |   1       |   'EEG'
+        data = load(subjectId);
     end
 end
 

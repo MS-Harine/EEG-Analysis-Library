@@ -1,4 +1,4 @@
-function epochedSignal = epoching(signal, point, range, varargin)
+function epochedSignal = low_epoching(signal, point, range, varargin)
 % EPOCHING Seperate the epochs from the signal
 %   Y = EPOCHING(X, point, range) seperates the epochs at each points of
 %   signal from range(1) to range(2). X should be (channel x time) format,

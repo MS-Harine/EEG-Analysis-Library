@@ -1,39 +1,59 @@
-function subjects = ExampleLoader(subjectId, varargin)
-%EXAMPLELOADER Example of data loader
-%   Example template for data loader.
-%   This example shows N subjects, 3 sessions, and 2 runs with 20 seconds
-%   and 6 target/non-target triggers.
-
-subjects = Subject.empty(1, numel(subjectId));
-sessions = [1 2 3];
-runs = ["train" "test"];
-
-% If subjectId is empty, return all ids of subjects.
-if isempty(subjectId)
-    subjects = 1:3;
-    return
-end
-
-for iSubject = 1:numel(subjectId)
-    loader = @(id) loadData(subjectId(iSubject));
-    subjects(iSubject) = Subject(sessions, runs, loader);
-end
-
-function data = loadData(subjectId)
-    % loadedData = load(subjectId);
-    nChannels = 32;
-    srate = 100;
-    trigIdx = [1 4 7 11 14 17];
-    trigType = ["Target", "Target", "Target", "Nontarget", "Nontarget", "Nontarget"];
+classdef ExampleLoader < DataLoader
+% EXAMPLELOADER Example of data loader
+%   Example of data loader
     
-    data = createtable();
-    for iSession = sessions
-        for jRun = runs
-            signal = rand(nChannels, srate * 20);
-            newData = createtable(iSession, jRun, signal, srate, trigIdx, trigType);
-            data = [data; newData];
+    properties
+        subjects = [1 2 3];
+        % sessions = {["train", "test"], ["train", "test"], ["train", "test"]};
+        sessions = ["train", "test"];
+        % runs = {{[1 2 3 4], [1 2]}, {[1 2 3 4], [1 2]}, {[1 2 3 4], [1 2]}};
+        runs = {[1 2 3 4], [1 2]};
+
+        srate = 100;
+        locFile = 'biosemi_chan32.ced';
+    end
+    
+    methods
+        function subjectIds = getSubjectIdentifiers(obj)
+            subjectIds = obj.subjects;
+        end
+
+        function sessionTypes = getSessionTypes(obj)
+            sessionTypes = obj.sessions;
+        end
+
+        function runTypes = getRunTypes(obj, session)
+            if nargin < 2
+                runTypes = obj.runs;
+                return;
+            end
+            
+            runIdx = find(ismember(obj.sessions, session));
+            if isempty(runIdx)
+                errorStruct.message = ['There is no session "' session '"'];
+                errorStruct.identifier = 'MATLAB:invalidInput';
+                error(errorStruct);
+            end
+            runTypes = obj.runs{runIdx};
+        end
+
+        function data = load(obj, subjectId)
+            subjectIdx = find(ismember(obj.subjects, subjectId));
+            if isempty(subjectIdx)
+                errorStruct.message = ['There is no subject "' subjectId '"'];
+                errorStruct.identifier = 'MATLAB:invalidInput';
+                error(errorStruct);
+            end
+
+            nChannel = 10;
+            nTimes = 20;
+            signal = rand(nChannel, obj.subjects(subjectIdx) * obj.srate * nTimes);
+
+            data = EEG(signal, obj.srate, ...
+                       'triggerIndex', [obj.srate * 1, obj.srate * 10], ...
+                       'triggerType', ["Target", "NonTarget"], ...
+                       'channelInfo', 'biosemi_chan32.ced');
         end
     end
 end
 
-end
