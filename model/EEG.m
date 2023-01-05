@@ -63,12 +63,16 @@ classdef EEG < handle
             %   eeg = EEG(signal, srate, 'triggerType', triggerType, ...
             %   'triggerIndex', triggerIndex);
 
+            if nargin == 0
+                return
+            end
+
             p = inputParser;
             addRequired(p, 'signal', @(x) ndims(x) < 4);
             addRequired(p, 'srate', @isscalar);
-            addOptional(p, 'triggerIndex', [], @isvector);
-            addOptional(p, 'triggerType', [], @isvector);
-            addOptional(p, 'channelInfo', []);
+            addParameter(p, 'triggerIndex', [], @isvector);
+            addParameter(p, 'triggerType', [], @isvector);
+            addParameter(p, 'channelInfo', []);
             parse(p, signal, srate, varargin{:});
             
             obj.signal = signal;
@@ -99,10 +103,83 @@ classdef EEG < handle
                 obj.channelInfo = value;
             end
         end
+
+        function value = subsref(obj, subscript)
+            % SUBSREF return the n-th trial of epoched data
+            %   T = OBJ(n) is overrided function for subsref. It returns n-th trial of
+            %   epoched data. If it is not epoched, it returns n-th data from (channel
+            %   x time) data.
+            %
+            %   T = OBJ(type, n) returns the n-th trial of epoched data with specific
+            %   type of trigger. 
+            %   
+            %   % Example 1:
+            %   %   Indexing the trials
+            %   eeg = EEG(signal, srate);
+            %   trials = eeg(3:5);
+            %
+            %   % Example 2:
+            %   %   Indexing the trials with channel number
+            %   eeg = EEG(signal, srate);
+            %   trials = eeg(1, 3:5);
+            %
+            %   % Example 3:
+            %   %   Indexing the trials with specific trigger type
+            %   eeg = EEG(signal, srate);
+            %   eeg.epoching(range, triggerIndex, triggerType);
+            %   targets = eeg('target', 3:5);
         
-        epoching(obj, varargin);
-        rereference(obj, varargin);
-        trials = subsref(obj, subscript);
+            isValidate = strcmpi(subscript(1).type, '()');
+        
+            if ~isValidate
+                value = builtin('subsref', obj, subscript);
+                return
+            end
+        
+            if numel(subscript(1).subs) == 1
+                % Without trigger type
+                sub = subscript(1).subs{1};
+                if ismember(sub, unique(obj.triggerType))
+                    value = sum(obj.triggerType == sub);
+                    return
+                elseif ~isnumeric(sub)
+                    errorStruct.message = 'Only integer vector can index the data. Use EEG(integer) or EEG(Type, integer)';
+                    errorStruct.identifier = 'EEGAL:invalidSubscript';
+                    error(errorStruct);
+                end
+                value = obj.signal(sub);
+            elseif isnumeric(subscript(1).subs{1})
+                % Without trigger type & input channel number
+                channel = subscript(1).subs{1};
+                sub = subscript(1).subs{2};
+                value = obj.signal(channel, sub);
+            else
+                % With trigger type
+                type = subscript(1).subs{1};
+                sub = subscript(1).subs{2};
+
+                value = obj.epoching(type, sub);
+            end
+
+            subscript(1) = [];
+            if ~isempty(subscript)
+                value = subsref(obj, subscript);
+            end
+        end
+    end
+
+    methods (Access = private)
+        function epoch = epoching(obj, trigger, index)
+            triggerIdx = find(ismember(obj.triggerType, trigger));
+            triggerIdx = triggerIdx(index);
+            triggerIdx = obj.triggerIndex(triggerIdx);
+
+            if isempty(obj.baselineRange)
+                epoch = low_epoching(obj.signal, obj.srate, triggerIdx, obj.epochRange);
+            else
+                epoch = low_epoching(obj.signal, obj.srate, triggerIdx, obj.epochRange, 'baseline', obj.baselineRange);
+            end
+        end
     end
 end
 

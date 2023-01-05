@@ -1,4 +1,4 @@
-classdef EEGDataset
+classdef EEGDataset < handle
 % EEGDATASET dataset class for eeg data
 %   This dataset contains many subjects' eeg data.
     
@@ -25,6 +25,10 @@ classdef EEGDataset
             %   % Example 1:
             %   %   Instanciate the dataset
             %   dataset = EEGDataset('ExampleLoader');
+
+            if nargin == 0
+                return
+            end
 
             obj.dataLoader = getDataLoader(datasetId);
             obj.subjectIds = obj.dataLoader.getSubjectIdentifiers();
@@ -53,7 +57,7 @@ classdef EEGDataset
             isValidate = strcmpi(subscript(1).type, '{}');
             if ~isValidate
                 subject = builtin('subsref', obj, subscript);
-                return;
+                return
             end
 
             if strcmp(subscript(1).subs{1}, ':')

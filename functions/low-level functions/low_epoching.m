@@ -1,4 +1,4 @@
-function epochedSignal = low_epoching(signal, point, range, varargin)
+function epochedSignal = low_epoching(signal, srate, point, range, varargin)
 % EPOCHING Seperate the epochs from the signal
 %   Y = EPOCHING(X, point, range) seperates the epochs at each points of
 %   signal from range(1) to range(2). X should be (channel x time) format,
@@ -50,12 +50,12 @@ validateRange = @(x) (numel(x) == 2) && (x(1) < x(2));
 
 p = inputParser;
 addRequired(p, 'signal', @ismatrix);
+addRequired(p, 'srate', @isscalar);
 addRequired(p, 'point', @isvector);
 addRequired(p, 'range', validateRange);
-addOptional(p, 'srate', 0, @isscalar);
 addParameter(p, 'baseline', [], validateRange);
 addParameter(p, 'threshold', Inf, @isscalar);
-parse(p, signal, point, range, varargin{:});
+parse(p, signal, srate, point, range, varargin{:});
 
 srate = p.Results.srate;
 baseline = p.Results.baseline;
@@ -79,9 +79,9 @@ for iTrial = 1:length(point)
         continue
     end
 
-    epoch = signal(:, iPoint - range(1) + 1 : iPoint + range(2));
+    epoch = signal(:, iPoint + range(1) : iPoint + range(2));
     if ~isempty(baseline)
-        epoch = epoch - mean(signal(:, iPoint - baseline(1) + 1 : iPoint + baseline(2)), 2);
+        epoch = epoch - mean(signal(:, iPoint + baseline(1) + 1 : iPoint + baseline(2)), 2);
     end
 
     if max(epoch) - min(epoch) > threshold

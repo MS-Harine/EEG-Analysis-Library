@@ -1,13 +1,11 @@
-classdef ExampleLoader < DataLoader
-% EXAMPLELOADER Example of data loader
+classdef Example < DataLoader
+% EXAMPLE Example of data loader
 %   Example of data loader
     
     properties
         subjects = [1 2 3];
-        % sessions = {["train", "test"], ["train", "test"], ["train", "test"]};
         sessions = ["train", "test"];
-        % runs = {{[1 2 3 4], [1 2]}, {[1 2 3 4], [1 2]}, {[1 2 3 4], [1 2]}};
-        runs = {[1 2 3 4], [1 2]};
+        runs = {string(1:4), ["Open", "Close"]};
 
         srate = 100;
         locFile = 'biosemi_chan32.ced';
@@ -25,13 +23,13 @@ classdef ExampleLoader < DataLoader
         function runTypes = getRunTypes(obj, session)
             if nargin < 2
                 runTypes = obj.runs;
-                return;
+                return
             end
             
             runIdx = find(ismember(obj.sessions, session));
             if isempty(runIdx)
                 errorStruct.message = ['There is no session "' session '"'];
-                errorStruct.identifier = 'MATLAB:invalidInput';
+                errorStruct.identifier = 'EEGAL:invalidInput';
                 error(errorStruct);
             end
             runTypes = obj.runs{runIdx};
@@ -41,7 +39,7 @@ classdef ExampleLoader < DataLoader
             subjectIdx = find(ismember(obj.subjects, subjectId));
             if isempty(subjectIdx)
                 errorStruct.message = ['There is no subject "' subjectId '"'];
-                errorStruct.identifier = 'MATLAB:invalidInput';
+                errorStruct.identifier = 'EEGAL:invalidInput';
                 error(errorStruct);
             end
 
@@ -49,10 +47,24 @@ classdef ExampleLoader < DataLoader
             nTimes = 20;
             signal = rand(nChannel, obj.subjects(subjectIdx) * obj.srate * nTimes);
 
-            data = EEG(signal, obj.srate, ...
-                       'triggerIndex', [obj.srate * 1, obj.srate * 10], ...
-                       'triggerType', ["Target", "NonTarget"], ...
-                       'channelInfo', 'biosemi_chan32.ced');
+            eeg = EEG(signal, obj.srate, ...
+                      'triggerIndex', [obj.srate * 1, obj.srate * 10], ...
+                      'triggerType', ["Target", "NonTarget"], ...
+                      'channelInfo', 'biosemi_chan32.ced');
+
+            data = struct('session', [], 'run', [], 'eeg', []);
+            
+            idx = 1;
+            for i = 1:numel(obj.sessions)
+                sess = obj.sessions{i};
+                run = obj.runs{i};
+                for subrun = run
+                    data(idx).session = string(sess);
+                    data(idx).run = subrun;
+                    data(idx).eeg = eeg;
+                    idx = idx + 1;
+                end
+            end
         end
     end
 end

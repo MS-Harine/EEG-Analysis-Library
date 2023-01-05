@@ -4,12 +4,8 @@ function dataset = getDataLoader(datasetId)
 %   % Example 1.
 %   data = loaddata('ExampleLoader');
 
-    persistent datasetList
-
-    if isempty(datasetList)
-        loaderList = dir(fullfile(fileparts(mfilename("fullpath")), 'loader', '*.m'));
-        datasetList = cellfun(@(x) extractBefore(x, '.'), {loaderList.name}, 'UniformOutput', false);
-    end
+    loaderList = dir(fullfile(fileparts(mfilename("fullpath")), 'loader', '*.m'));
+    datasetList = cellfun(@(x) extractBefore(x, '.'), {loaderList.name}, 'UniformOutput', false);
 
     validateDataset = validatestring(datasetId, datasetList);
     datasetIndex = strcmpi(datasetList, validateDataset);

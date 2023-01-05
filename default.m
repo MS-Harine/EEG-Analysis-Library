@@ -10,7 +10,7 @@ functionDir = fullfile(baseDir, 'functions');
 
 addpath(genpath(dataDir));
 addpath(modelDir);
-addpath(functionDir);
+addpath(genpath(functionDir));
 
 end
 
