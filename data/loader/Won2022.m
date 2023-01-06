@@ -2,7 +2,9 @@ classdef Won2022 < DataLoader
 % Won2022 Data loader for Won 2022 dataset (GIST Speller & RSVP)
 %   SubjectId is numeric value between 1 to 55
 %
-%   [1] Won, Kyungho, et al. "P300 speller performance predictor based on
+%   [1] Won, Kyungho, et al. "EEG Dataset for RSVP and P300 Speller
+%   Brain-Computer Interfaces." Scientific Data 9.1 (2022): 1-11.
+%   [2] Won, Kyungho, et al. "P300 speller performance predictor based on
 %   RSVP multi-feature." Frontiers in Human Neuroscience 13 (2019): 261.
 
     properties

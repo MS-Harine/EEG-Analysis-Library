@@ -42,7 +42,7 @@ classdef Subject < handle
             % GET.NSESSIONS Get number of sessions in subject
             %   N = SUBJECT.nSessions returns the number of sessions in subject.
             
-            nSessions = numel(obj.sessionType);
+            nSessions = numel(obj.sessionTypes);
         end
 
         function nRuns = get.nRuns(obj)
@@ -53,11 +53,15 @@ classdef Subject < handle
             %   N = SUBJECT{session}.nRuns returns the number of runs in specific
             %   sessions in subject.
             
-            lengths = cellfun(@length, obj.runTypes);
-            if range(lengths) == 0
-                nRuns = numel(obj.runTypes{1});
+            if ~iscell(obj.runTypes)
+                nRuns = numel(obj.runTypes);
             else
-                nRuns = lengths;
+                lengths = cellfun(@length, obj.runTypes);
+                if range(lengths) == 0
+                    nRuns = numel(obj.runTypes{1});
+                else
+                    nRuns = lengths;
+                end
             end
         end
 
