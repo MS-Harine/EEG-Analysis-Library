@@ -1,6 +1,24 @@
-classdef (Abstract) DataLoader
+classdef (Abstract) DataLoader < handle
 % DATALOADER Data loader abtract class for various loaders
 %   Abstract dataloader class for implement various loaders.
+
+    properties (Access = protected)
+        % locationInfo
+        %   Set the locationInfo property when you can get the location
+        %   information from 'readlocs()' function in EEGLAB.
+        locationInfo = []
+    end
+
+    methods
+        function locs = getLocationInfo(obj)
+            % getLocationInfo (struct)
+            %   Return the location informations from 'readlocs()' in EEGLAB
+            %   
+            %   If you cannot get location information before load the data,
+            %   return empty array(default) for lazy initialization.
+            locs = obj.locationInfo;
+        end
+    end
 
     methods (Abstract)
         % getSubjectIdentifiers (string or double array)

@@ -10,6 +10,7 @@ classdef Subject < handle
     end
     
     properties (Access = private)
+        dataset
         dataLoader
         data
     end
@@ -20,7 +21,7 @@ classdef Subject < handle
     end
     
     methods
-        function obj = Subject(subjectId, loader)
+        function obj = Subject(subjectId, loader, dataset)
             % SUBJECT constructor of Subject class
             %   OBJ = Subject(subjectId, loader) initializes the properties
             %   of this object. Loader is custom class which inherits the
@@ -30,6 +31,10 @@ classdef Subject < handle
 
             if nargin == 0
                 return
+            end
+
+            if nargin == 3
+                obj.dataset = dataset;
             end
 
             obj.subjectId = subjectId;
@@ -69,11 +74,21 @@ classdef Subject < handle
             %LOAD Load the data
             %   Loading the actual data. It may take some times.
         
-            obj.data = obj.dataLoader.load(obj.subjectId);
-            obj.isLoaded = true;
+            if ~obj.isLoaded
+                obj.data = obj.dataLoader.load(obj.subjectId);
+                obj.isLoaded = true;
+            end
+
+            if ~isempty(obj.dataset) && isempty(obj.dataset.locationInfo)
+                obj.dataset.locationInfo = obj.dataset.dataLoader.getLocationInfo();
+            end
         end
 
-        function value = subsref(obj, subscript)
+        function n = numArgumentsFromSubscript(obj, ~, ~)
+            n = numel(obj);
+        end
+
+        function varargout = subsref(obj, s)
             %SUBSREF Overwritted function for subsref
             %   Value = SUBJECT.Function(params) apply the function to all EEG signals.
             %   These functions should be one of the method of EEG class. It returns
@@ -87,86 +102,97 @@ classdef Subject < handle
             %   
             %   Value = SUBJECT{session}.nRuns returns the number of runs for specific
             %   session
-            
-            isValidate = strcmpi(subscript(1).type, '{}') || strcmpi(subscript(1).type, '.');
-            if ~isValidate
-                value = builtin('subsref', obj, subscript);
-                return
-            end
-        
-            switch subscript(1).type
-                case '.'
-                    name = subscript(1).subs;
+
+            nout = max(1, nargout);
+            varargout = cell(1, nout);
+
+            switch s(1).type
+                case '()'
+                    value = builtin('subsref', obj, s);
+                case '.' 
+                    % obj.xxx
+                    name = s(1).subs;
         
                     if ismember(name, properties(Subject))
+                        % obj.PropertyName
                         value = obj.(name);
-                    elseif ismethod(Subject, name)                
+                    elseif ismethod(Subject, name)
+                        % obj.Method(xx)
                         func = str2func(name);
-                        value = func(obj, subscript(2).subs{:});
-                        subscript(2) = [];
+                        value = func(obj, s(2).subs{:});
+                        s(2) = [];
                     elseif ismethod(EEG, name)
+                        % obj.Method(xx)
                         if ~obj.isLoaded
                             disp('Warning: data is not loaded. Data will be loaded automatically...')
                             obj.load();
                         end
         
                         for i = 1:numel(obj.data)
-                            value = feval(obj.data(i).eeg.(name), subscript(2).subs{:});
+                            value = feval(obj.data(i).eeg.(name), s(2).subs{:});
                         end
-                        subscript(2) = [];
+                        s(2) = [];
                     else
                         errID = 'EEGAL:noSuchMethodOrField';
                         errMsg = ['There is no "' name '" method or field in "Subject" class.'];
                         throw(MException(errID, errMsg));
                     end
                 case '{}'
-                    if strcmp(subscript(1).subs{1}, ':')
+                    % obj{xxx}
+                    if strcmp(s(1).subs{1}, ':')
                         sessionIdx = 1:numel(obj.sessionTypes);
                     else
                         validateSessions = obj.sessionTypes;
-                        if ~iscell(subscript(1).subs{1})
-                            subscript(1).subs{1} = {subscript(1).subs{1}};
+                        if ~iscell(s(1).subs{1})
+                            s(1).subs{1} = {s(1).subs{1}};
                         end
-                        session = cellfun(@(x) validatestring(string(x), validateSessions), subscript(1).subs{1});
+                        session = cellfun(@(x) validatestring(string(x), validateSessions), s(1).subs{1});
                         sessionIdx = find(ismember(obj.sessionTypes, session));
                     end
                 
-                    switch numel(subscript(1).subs)
+                    switch numel(s(1).subs)
                         case 1  % SUBJECT{session}.property
-                            if numel(subscript) < 2 || ~strcmp(subscript(2).type, '.')
+                            if numel(s) < 2 || ~strcmp(s(2).type, '.')
                                 errID = 'EEGAL:badsubscript';
-                                errMsg = 'Invalid subscript usage. Using SUBJECT{session, run} or SUBJECT{session}.property';
+                                errMsg = 'Invalid subscript usage. Using SUBJECT{session, run} or SUBJECT{session}.property. You can use "runTypes" or "nRuns" as property.';
                                 throw(MException(errID, errMsg));
                             end
                 
                             validateProperties = ["runTypes", "nRuns"];
-                            validProperty = validatestring(subscript(2).subs, validateProperties);
+                            validProperty = validatestring(s(2).subs, validateProperties);
                             switch validProperty
                                 case 'runTypes'
                                     value = obj.runTypes{sessionIdx};
                                 case 'nRuns'
                                     value = numel(obj.runTypes{sessionIdx});
                             end
-                            subscript(2) = [];
+                            s(2) = [];
         
                         case 2  % SUBJECT{session, run}
                             if ~obj.isLoaded
                                 disp('Warning: data is not loaded. Data will be loaded automatically...')
                                 obj.load();
                             end
+
+                            if strcmp(s(1).subs{2}, ':')
+                                s(1).subs{2} = {obj.data.run};
+                            end
         
                             selectedSessionIdx = ismember([obj.data.session], obj.sessionTypes(sessionIdx));
-                            selectedRunIdx = ismember([obj.data.run], string(subscript(1).subs{2}));
+                            selectedRunIdx = ismember([obj.data.run], string(s(1).subs{2}));
                             selectedIdx = selectedSessionIdx & selectedRunIdx;
                             value = [obj.data(selectedIdx).eeg];
                     end
+                otherwise
+                    error('Not a valid indexing expression');
             end
-        
-            subscript(1) = [];
-        
-            if ~isempty(subscript)
-                value = subsref(value, subscript);
+            s(1) = [];
+            
+            if ~isempty(s)
+                value = subsref(value, s);
             end
+            
+            varargout{1} = value;
         end
     end
 end

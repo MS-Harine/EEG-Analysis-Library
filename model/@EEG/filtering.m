@@ -31,12 +31,6 @@ function obj = filtering(obj, filter, range, varargin)
 
     FILTERS = ["bandpass", "bandstop", "highpass", "lowpass"];
 
-    validateClass = @(x) isa(x, 'EEG');
-
-    p = inputParser;
-    addRequired(p, 'obj', validateClass);
-    parse(p, obj);
-
     filter = validatestring(filter, FILTERS);
     func = str2func(sprintf("ft_preproc_%sfilter", filter));
     obj.signal = func(obj.signal, obj.srate, range);

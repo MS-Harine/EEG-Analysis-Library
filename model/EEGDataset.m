@@ -4,6 +4,7 @@ classdef EEGDataset < handle
     
     properties
         subjectIds  = [];
+        locationInfo = [];
     end
 
     properties (Access = private)
@@ -36,8 +37,9 @@ classdef EEGDataset < handle
             
             obj.subjects = Subject.empty(0, nSubjects);
             for i = 1:nSubjects
-                obj.subjects(i) = Subject(obj.subjectIds(i), obj.dataLoader);
+                obj.subjects(i) = Subject(obj.subjectIds(i), obj.dataLoader, obj);
             end
+            obj.locationInfo = obj.dataLoader.getLocationInfo();
         end
 
         function nSubjects = get.nSubjects(obj)

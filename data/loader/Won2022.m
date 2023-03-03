@@ -43,6 +43,7 @@ classdef Won2022 < DataLoader
             data = struct('session', [], 'run', [], 'eeg', []);
             dataIdx = 1;
             currentData = load(fullfile(obj.baseDir, sprintf("s%02d.mat", subjectId)));
+            obj.locationInfo = currentData.test{1}.chanlocs;
 
             for sessionIdx = 1:numel(obj.sessions)
                 session = obj.sessions{sessionIdx};

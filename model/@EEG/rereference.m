@@ -25,10 +25,8 @@ function obj = rereference(obj, varargin)
 
 %   Copyright 2022 Minseok Song     Minseok.H.Song@gmail.com
 
-    validateClass = @(x) isa(x, 'EEG');
-
     p = inputParser;
-    addRequired(p, 'obj', validateClass);
+    addRequired(p, 'obj');
     addOptional(p, 'method', 'CAR', @isscalar);
     addOptional(p, 'channelInfo', []);
     parse(p, obj, varargin{:});

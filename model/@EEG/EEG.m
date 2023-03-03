@@ -6,11 +6,22 @@ classdef EEG < handle
         signal          = []
         srate           = 0
         isEpoched       = false
-        triggerIndex    = []
-        triggerType     = []
+        triggerTypes    = []
         channelInfo     = nan
         epochRange      = []
         baselineRange   = []
+    end
+
+    properties (Access = private)
+        triggerIndex    = []
+        triggerType     = []
+        rawSignal       = []
+    end
+
+    methods
+        obj = rereference(obj, varargin);
+        obj = filtering(obj, filter, range, varargin);
+        obj = autoICA(obj, varargin);
     end
     
     methods
@@ -75,11 +86,13 @@ classdef EEG < handle
             addParameter(p, 'channelInfo', []);
             parse(p, signal, srate, varargin{:});
             
+            obj.rawSignal = signal;
             obj.signal = signal;
             obj.srate = srate;
             obj.triggerIndex = p.Results.triggerIndex;
             obj.triggerType = p.Results.triggerType;
             obj.channelInfo = p.Results.channelInfo;
+            obj.triggerTypes = unique(p.Results.triggerType);
 
             if ndims(signal) == 3
                 obj.isEpoched = true;
@@ -104,7 +117,21 @@ classdef EEG < handle
             end
         end
 
-        function value = subsref(obj, subscript)
+        function result = reset(obj)
+            obj.signal = obj.rawSignal;
+            if ndims(obj.signal) == 3
+                obj.isEpoched = true;
+            else
+                obj.isEpoched = false;
+            end
+            result = true;
+        end
+
+        function n = numArgumentsFromSubscript(obj, a, b)
+            n = numel(obj);
+        end
+
+        function varargout = subsref(objs, s)
             % SUBSREF return the n-th trial of epoched data
             %   T = OBJ(n) is overrided function for subsref. It returns n-th trial of
             %   epoched data. If it is not epoched, it returns n-th data from (channel
@@ -129,46 +156,99 @@ classdef EEG < handle
             %   eeg.epoching(range, triggerIndex, triggerType);
             %   targets = eeg('target', 3:5);
         
-            isValidate = strcmpi(subscript(1).type, '()');
-        
-            if ~isValidate
-                value = builtin('subsref', obj, subscript);
-                return
-            end
-        
-            if numel(subscript(1).subs) == 1
-                % Without trigger type
-                sub = subscript(1).subs{1};
-                if ismember(sub, unique(obj.triggerType))
-                    value = sum(obj.triggerType == sub);
-                    return
-                elseif ~isnumeric(sub)
-                    errorStruct.message = 'Only integer vector can index the data. Use EEG(integer) or EEG(Type, integer)';
-                    errorStruct.identifier = 'EEGAL:invalidSubscript';
-                    error(errorStruct);
+            nout = max(1, nargout);
+            varargout = cell(1, nout);
+
+            for objIdx = 1:numel(objs)
+                obj = objs(objIdx);
+
+                switch s(1).type
+                    case '{}'
+                        % obj{xxx}
+                        value = builtin('subsref', obj, s);
+                    case '.'
+                        % obj.xxx
+                        if numel(s) == 1
+                            % obj.Property
+                            if ismethod(obj, s(1).subs)
+                                value = @(varargin) obj.(s(1).subs)(varargin{:});
+                            elseif isprop(obj, s(1).subs)
+                                value = obj.(s(1).subs);
+                            else
+                                value = builtin('subsref', obj, s);
+                            end
+                        else
+                            % obj.Property(xxx)
+                            value = builtin('subsref', obj, s);
+                            s(2) = [];
+                        end
+                    case '()'
+                        if numel(s(1).subs) == 1
+                            % obj(xxx)
+                            sub = s(1).subs{1};
+                            if ismember(sub, unique(obj.triggerType))
+                                % obj(trigger) return count of trigger
+                                value = sum(obj.triggerType == sub);
+                            elseif ~isnumeric(sub)
+                                errorStruct.message = 'Only integer vector can index the data. Use EEG(integer) or EEG(Type, integer)';
+                                errorStruct.identifier = 'EEGAL:invalidSubscript';
+                                error(errorStruct);
+                            else
+                                % obj(indicies)
+                                value = obj.signal(sub);
+                            end
+                        elseif isnumeric(s(1).subs{1})
+                            % obj(channel, indicies)
+                            channel = s(1).subs{1};
+                            sub = s(1).subs{2};
+                            value = obj.signal(channel, sub);
+                        else
+                            % obj(trigger, indicies)
+                            type = s(1).subs{1};
+                            sub = s(1).subs{2};
+            
+                            obj.checkSettings();
+                            value = obj.epoching(type, sub);
+                        end
                 end
-                value = obj.signal(sub);
-            elseif isnumeric(subscript(1).subs{1})
-                % Without trigger type & input channel number
-                channel = subscript(1).subs{1};
-                sub = subscript(1).subs{2};
-                value = obj.signal(channel, sub);
-            else
-                % With trigger type
-                type = subscript(1).subs{1};
-                sub = subscript(1).subs{2};
-
-                value = obj.epoching(type, sub);
+                varargout{1}{objIdx} = value;
             end
 
-            subscript(1) = [];
-            if ~isempty(subscript)
-                value = subsref(obj, subscript);
+            s(1) = [];
+
+            if ~isempty(s)
+                for objIdx = 1:numel(obj)
+                    varargout{1}{objIdx} = subsref(varargout{objIdx}, s);
+                end
             end
+
+            if numel(varargout{1}) == 1
+                varargout{1} = varargout{1}{:};
+            end
+        end
+
+        function epochRange = setEpochRange(obj, range)
+            obj.epochRange = range;
+            epochRange = range;
+        end
+
+        function baselineRange = setBaselineRange(obj, range)
+            obj.baselineRange = range;
+            baselineRange = range;
         end
     end
 
     methods (Access = private)
+        function checkSettings(obj)
+            if isempty(obj.epochRange)
+                errorStruct.message = 'Please set the epoching range with obj.setEpochRange(range).';
+                errorStruct.identifier = 'EEGAL:invalidUsageOfMethod';
+                error(errorStruct);
+            elseif isempty(obj.baselineRange)
+                warning('Baseline range is not set.');
+            end
+        end
+
         function epoch = epoching(obj, trigger, index)
             triggerIdx = find(ismember(obj.triggerType, trigger));
             triggerIdx = triggerIdx(index);

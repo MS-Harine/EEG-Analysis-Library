@@ -1,4 +1,4 @@
-classdef Example < DataLoader
+classdef ExampleDataset < DataLoader
 % EXAMPLE Example of data loader
 %   Example of data loader
     
