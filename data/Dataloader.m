@@ -32,6 +32,10 @@ classdef (Abstract) DataLoader < handle
         % getRunTypes (cell array, {double array, double array ...})
         %   Return the list of run types for specific session
         runTypes = getRunTypes(obj, session);
+        
+        % getSamplingRate (scalar or vector, value or [value, value])
+        %   Return the sampling rate or list of sampling rate
+        samplingRate = getSamplingRate(obj);
 
         % load
         %   Load specific subject's data and event.

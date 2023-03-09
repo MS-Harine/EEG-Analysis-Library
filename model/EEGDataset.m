@@ -5,6 +5,7 @@ classdef EEGDataset < handle
     properties
         subjectIds  = [];
         locationInfo = [];
+        samplingRate = [];
     end
 
     properties (Access = private)
@@ -33,6 +34,7 @@ classdef EEGDataset < handle
 
             obj.dataLoader = getDataLoader(datasetId);
             obj.subjectIds = obj.dataLoader.getSubjectIdentifiers();
+            obj.samplingRate = obj.dataLoader.getSamplingRate();
             nSubjects = numel(obj.subjectIds);
             
             obj.subjects = Subject.empty(0, nSubjects);

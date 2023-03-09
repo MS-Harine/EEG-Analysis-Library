@@ -27,7 +27,7 @@ function obj = rereference(obj, varargin)
 
     p = inputParser;
     addRequired(p, 'obj');
-    addOptional(p, 'method', 'CAR', @isscalar);
+    addOptional(p, 'method', 'CAR', @ischar);
     addOptional(p, 'channelInfo', []);
     parse(p, obj, varargin{:});
     

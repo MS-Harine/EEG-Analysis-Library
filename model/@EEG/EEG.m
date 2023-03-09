@@ -15,13 +15,14 @@ classdef EEG < handle
     properties (Access = private)
         triggerIndex    = []
         triggerType     = []
-        rawSignal       = []
+        rawData         = nan
     end
 
     methods
         obj = rereference(obj, varargin);
         obj = filtering(obj, filter, range, varargin);
         obj = autoICA(obj, varargin);
+        obj = resampling(obj, srate);
     end
     
     methods
@@ -86,13 +87,15 @@ classdef EEG < handle
             addParameter(p, 'channelInfo', []);
             parse(p, signal, srate, varargin{:});
             
-            obj.rawSignal = signal;
-            obj.signal = signal;
+            obj.signal = double(signal);
             obj.srate = srate;
             obj.triggerIndex = p.Results.triggerIndex;
             obj.triggerType = p.Results.triggerType;
             obj.channelInfo = p.Results.channelInfo;
             obj.triggerTypes = unique(p.Results.triggerType);
+            
+            obj.rawData = struct('signal', obj.signal, 'srate', obj.srate, ...
+                'channelInfo', obj.channelInfo, 'triggerIndex', obj.triggerIndex);
 
             if ndims(signal) == 3
                 obj.isEpoched = true;
@@ -117,17 +120,18 @@ classdef EEG < handle
             end
         end
 
-        function result = reset(obj)
-            obj.signal = obj.rawSignal;
-            if ndims(obj.signal) == 3
-                obj.isEpoched = true;
-            else
-                obj.isEpoched = false;
+        function obj = reset(obj)
+            for fname = fieldnames(obj.rawData)
+                obj.(fname) = obj.rawData.(fname);
             end
-            result = true;
         end
 
-        function n = numArgumentsFromSubscript(obj, a, b)
+        function obj = deleteData(obj)
+            obj.signal = [];
+            obj.rawData = nan;
+        end
+
+        function n = numArgumentsFromSubscript(obj, ~, ~)
             n = numel(obj);
         end
 
@@ -218,7 +222,7 @@ classdef EEG < handle
 
             if ~isempty(s)
                 for objIdx = 1:numel(obj)
-                    varargout{1}{objIdx} = subsref(varargout{objIdx}, s);
+                    varargout{1}{objIdx} = subsref(varargout{1}{objIdx}, s);
                 end
             end
 
@@ -227,14 +231,12 @@ classdef EEG < handle
             end
         end
 
-        function epochRange = setEpochRange(obj, range)
+        function obj = setEpochRange(obj, range)
             obj.epochRange = range;
-            epochRange = range;
         end
 
-        function baselineRange = setBaselineRange(obj, range)
+        function obj = setBaselineRange(obj, range)
             obj.baselineRange = range;
-            baselineRange = range;
         end
     end
 
@@ -253,6 +255,10 @@ classdef EEG < handle
             triggerIdx = find(ismember(obj.triggerType, trigger));
             triggerIdx = triggerIdx(index);
             triggerIdx = obj.triggerIndex(triggerIdx);
+
+            if isempty(triggerIdx)
+                warning('There is no trigger like "%s"', trigger);
+            end
 
             if isempty(obj.baselineRange)
                 epoch = low_epoching(obj.signal, obj.srate, triggerIdx, obj.epochRange);

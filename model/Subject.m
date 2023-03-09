@@ -70,12 +70,12 @@ classdef Subject < handle
             end
         end
 
-        function obj = load(obj)
+        function obj = load(obj, varargin)
             %LOAD Load the data
             %   Loading the actual data. It may take some times.
         
             if ~obj.isLoaded
-                obj.data = obj.dataLoader.load(obj.subjectId);
+                obj.data = obj.dataLoader.load(obj.subjectId, varargin{:});
                 obj.isLoaded = true;
             end
 

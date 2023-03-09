@@ -5,12 +5,13 @@ function locs = loadlocs(device, channels)
 
 validateDevices = ["Biosemi", "Standard"];
 device = validatestring(device, validateDevices);
+options = {'filetype', 'chanedit'};
 
 switch device
     case "Standard"
-        loc_info = readlocs('Standard-10-5-Cap385.ced');
+        loc_info = readlocs('Standard-10-5-Cap385.ced', options{:});
     case "Biosemi"
-        loc_info = readlocs('biosemi_chan64.ced');
+        loc_info = readlocs('biosemi_chan64.ced', options{:});
 end
 
 labels = string({loc_info.labels});

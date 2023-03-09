@@ -32,28 +32,28 @@ function referencedSignal = low_rereference(signal,varargin)
 
 %   Copyright 2022 Minseok Song     Minseok.H.Song@gmail.com
 
-defaultMethod = 'car';
-expectedMethods = {'CAR', 'Laplacian', 'Manual'};
-
-p = inputParser;
-addRequired(p, 'signal', @ismatrix);
-addOptional(p, 'method', defaultMethod, @(x) any(validatestring(x, expectedMethods)));
-addOptional(p, 'channelInfo', []);
-parse(p, signal, varargin{:});
-
-method = p.Results.method;
-channelInfo = p.Results.method;
-
-switch method
-    case 'CAR'
-        reference = mean(signal, 1);
-    case 'Laplacian'
-        throw('Method is not implemented')
-    case 'Manual'
-        reference = mean(signal(channelInfo, :), 1);
-end
-
-referencedSignal = signal - reference;
+    defaultMethod = 'car';
+    expectedMethods = {'CAR', 'Laplacian', 'Manual'};
+    
+    p = inputParser;
+    addRequired(p, 'signal', @ismatrix);
+    addOptional(p, 'method', defaultMethod, @(x) any(validatestring(x, expectedMethods)));
+    addOptional(p, 'channelInfo', []);
+    parse(p, signal, varargin{:});
+    
+    method = p.Results.method;
+    channelInfo = p.Results.method;
+    
+    switch method
+        case 'CAR'
+            reference = mean(signal, 1);
+        case 'Laplacian'
+            throw('Method is not implemented')
+        case 'Manual'
+            reference = mean(signal(channelInfo, :), 1);
+    end
+    
+    referencedSignal = signal - reference;
 
 end
 

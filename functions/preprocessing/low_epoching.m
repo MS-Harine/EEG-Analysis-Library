@@ -46,54 +46,54 @@ function epochedSignal = low_epoching(signal, srate, point, range, varargin)
 
 %   Copyright 2022 Minseok Song     Minseok.H.Song@gmail.com
 
-validateRange = @(x) (numel(x) == 2) && (x(1) < x(2));
-
-p = inputParser;
-addRequired(p, 'signal', @ismatrix);
-addRequired(p, 'srate', @isscalar);
-addRequired(p, 'point', @isvector);
-addRequired(p, 'range', validateRange);
-addParameter(p, 'baseline', [], validateRange);
-addParameter(p, 'threshold', Inf, @isscalar);
-parse(p, signal, srate, point, range, varargin{:});
-
-srate = p.Results.srate;
-baseline = p.Results.baseline;
-threshold = p.Results.threshold;
-
-if srate ~= 0
-    range = floor(range * srate);
-    baseline = floor(baseline * srate);
-end
-
-epochedSignal = zeros(length(point), size(signal, 1), range(2) - range(1) + 1);
-iEpoch = 1;
-
-for iTrial = 1:length(point)
-    iPoint = point(iTrial);
-    if iPoint - range(1) < 0
-        warning(['The range of the ' num2str(iTrial) 'st epoch is out of zero. This epoch will be exclude.'])
-        continue
-    elseif iPoint + range(2) > size(signal, 2)
-        warning(['The range of the ' num2str(iTrial) 'st epoch is out of signal length. This epoch will be exclude.'])
-        continue
+    validateRange = @(x) (numel(x) == 2) && (x(1) < x(2));
+    
+    p = inputParser;
+    addRequired(p, 'signal', @ismatrix);
+    addRequired(p, 'srate', @isscalar);
+    addRequired(p, 'point', @isvector);
+    addRequired(p, 'range', validateRange);
+    addParameter(p, 'baseline', [], validateRange);
+    addParameter(p, 'threshold', Inf, @isscalar);
+    parse(p, signal, srate, point, range, varargin{:});
+    
+    srate = p.Results.srate;
+    baseline = p.Results.baseline;
+    threshold = p.Results.threshold;
+    
+    if srate ~= 0
+        range = floor(range * srate);
+        baseline = floor(baseline * srate);
     end
-
-    epoch = signal(:, iPoint + range(1) : iPoint + range(2));
-    if ~isempty(baseline)
-        epoch = epoch - mean(signal(:, iPoint + baseline(1) + 1 : iPoint + baseline(2)), 2);
+    
+    epochedSignal = zeros(length(point), size(signal, 1), range(2) - range(1) + 1);
+    iEpoch = 1;
+    
+    for iTrial = 1:length(point)
+        iPoint = point(iTrial);
+        if iPoint - range(1) < 0
+            warning(['The range of the ' num2str(iTrial) 'st epoch is out of zero. This epoch will be exclude.'])
+            continue
+        elseif iPoint + range(2) > size(signal, 2)
+            warning(['The range of the ' num2str(iTrial) 'st epoch is out of signal length. This epoch will be exclude.'])
+            continue
+        end
+    
+        epoch = signal(:, iPoint + range(1) : iPoint + range(2));
+        if ~isempty(baseline)
+            epoch = epoch - mean(signal(:, iPoint + baseline(1) + 1 : iPoint + baseline(2)), 2);
+        end
+    
+        if max(epoch) - min(epoch) > threshold
+            continue
+        end
+    
+        epochedSignal(iEpoch, :, :) = epoch;
+        iEpoch = iEpoch + 1;
     end
-
-    if max(epoch) - min(epoch) > threshold
-        continue
+    
+    if iEpoch ~= length(point)
+        epochedSignal(iEpoch:end, :, :) = [];
     end
-
-    epochedSignal(iEpoch, :, :) = epoch;
-    iEpoch = iEpoch + 1;
-end
-
-if iEpoch ~= length(point)
-    epochedSignal(iEpoch:end, :, :) = [];
-end
 
 end

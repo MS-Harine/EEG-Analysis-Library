@@ -1,4 +1,4 @@
-function default()
+function default
 %DEFAULT Function for add path of this library
 
     baseDir = fileparts(mfilename('fullpath'));
@@ -11,6 +11,4 @@ function default()
     addpath(genpath(dataDir));
     addpath(modelDir);
     addpath(genpath(functionDir));
-
 end
-
