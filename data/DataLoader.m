@@ -52,4 +52,3 @@ classdef (Abstract) DataLoader < handle
         data = load(subjectId);
     end
 end
-
